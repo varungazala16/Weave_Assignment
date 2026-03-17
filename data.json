@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-03-17T18:47:03.238148+00:00",
+  "generated_at": "2026-03-17T19:26:28.526538+00:00",
   "days_covered": 89,
-  "total_prs_analyzed": 219,
-  "cutoff_date": "2025-12-17T18:42:08.449556+00:00",
+  "total_prs_analyzed": 222,
+  "cutoff_date": "2025-12-17T19:21:48.189698+00:00",
   "weights": {
     "merged_prs": 2.0,
     "reviews": 1.5,
@@ -11,11 +11,11 @@
     "speed": 1.0
   },
   "team_averages": {
-    "merged_prs": 2.99,
+    "merged_prs": 3.03,
     "meaningful_reviews": 2.29,
     "review_threads": 1.43,
-    "unique_dirs": 4.56,
-    "speed_bonus": 0.691
+    "unique_dirs": 4.57,
+    "speed_bonus": 0.683
   },
   "top5": [
     {
@@ -39,7 +39,7 @@
       "persona": {
         "tag": "The Shield",
         "emoji": "\ud83d\udee1\ufe0f",
-        "reason": "Highest review-to-author ratio"
+        "reason": "Provides the most thorough peer feedback."
       }
     },
     {
@@ -50,43 +50,43 @@
       "review_threads_started": 9,
       "dirs_touched": [
         "common/hogli",
-        "products/logs",
-        "pnpm-lock.yaml",
-        "package.json",
-        "products/cdp",
         "tach.toml",
-        "tools/pr-approval-agent",
-        "bin/wait-for-docker",
-        "posthog/management",
-        ".github/CODEOWNERS-soft",
-        ".github/workflows",
-        ".husky/pre-commit",
-        "frontend/bin",
-        "AGENTS.md",
         "bin/ci-wait-for-docker",
-        "posthog/api",
+        "products/cdp",
+        ".husky/pre-commit",
+        "tools/infra-scripts",
         "tools/openapi-codegen",
         "tools/phrocs",
-        "tools/infra-scripts",
         "products/metrics",
+        ".husky/post-checkout",
+        "posthog/management",
+        ".github/CODEOWNERS-soft",
+        "pnpm-lock.yaml",
+        "tools/pr-approval-agent",
+        "package.json",
+        "products/logs",
+        "posthog/api",
+        "frontend/bin",
+        ".github/workflows",
         "services/mcp",
-        ".husky/post-checkout"
+        "bin/wait-for-docker",
+        "AGENTS.md"
       ],
       "unique_dirs": 22,
       "avg_days_open": 1.37,
       "speed_bonus": 0.535,
-      "impact_score": 30.208,
+      "impact_score": 30.077,
       "normalized": {
-        "merged_prs": 4.02,
+        "merged_prs": 3.961,
         "reviews": 5.231,
         "threads": 6.309,
-        "dirs": 4.826,
-        "speed": 0.775
+        "dirs": 4.81,
+        "speed": 0.784
       },
       "persona": {
-        "tag": "The Closer",
-        "emoji": "\ud83d\ude80",
-        "reason": "Highest PR merge volume"
+        "tag": "The Shield",
+        "emoji": "\ud83d\udee1\ufe0f",
+        "reason": "Provides the most thorough peer feedback."
       }
     },
     {
@@ -96,38 +96,38 @@
       "meaningful_reviews_given": 12,
       "review_threads_started": 7,
       "dirs_touched": [
+        "rust/kafka-deduplicator",
+        "mypy-baseline.txt",
+        "posthog/tasks",
+        "frontend/__snapshots__",
         "rust/cymbal",
         "posthog/api",
-        "rust/kafka-deduplicator",
-        "posthog/management",
-        "frontend/__snapshots__",
-        "posthog/models",
-        "rust/feature-flags",
-        "mypy-baseline.txt",
-        "rust/batch-import-worker",
-        "posthog/session_recordings",
-        "posthog/tasks",
-        "docs/internal",
         "frontend/src",
-        "infra-scripts/mcp",
+        "rust/feature-flags",
+        "posthog/storage",
         "rust/Cargo.lock",
-        "posthog/storage"
+        "posthog/session_recordings",
+        "docs/internal",
+        "rust/batch-import-worker",
+        "posthog/models",
+        "infra-scripts/mcp",
+        "posthog/management"
       ],
       "unique_dirs": 16,
       "avg_days_open": 0.98,
       "speed_bonus": 0.676,
-      "impact_score": 26.366,
+      "impact_score": 26.253,
       "normalized": {
-        "merged_prs": 3.685,
+        "merged_prs": 3.631,
         "reviews": 5.231,
         "threads": 4.907,
-        "dirs": 3.51,
-        "speed": 0.979
+        "dirs": 3.498,
+        "speed": 0.99
       },
       "persona": {
-        "tag": "The Accelerator",
-        "emoji": "\u26a1",
-        "reason": "Fastest average PR turnaround"
+        "tag": "The Shield",
+        "emoji": "\ud83d\udee1\ufe0f",
+        "reason": "Provides the most thorough peer feedback."
       }
     },
     {
@@ -137,31 +137,31 @@
       "meaningful_reviews_given": 12,
       "review_threads_started": 5,
       "dirs_touched": [
-        "posthog/api",
-        "ee/tasks",
+        "ee/migrations",
         "frontend/__snapshots__",
         "products/logs",
-        "ee/api",
+        "posthog/api",
+        "frontend/src",
         "ee/models",
+        "ee/api",
         "posthog/tasks",
-        "ee/migrations",
-        "frontend/src"
+        "ee/tasks"
       ],
       "unique_dirs": 9,
       "avg_days_open": 9.91,
       "speed_bonus": 0.096,
-      "impact_score": 15.122,
+      "impact_score": 15.104,
       "normalized": {
-        "merged_prs": 0.335,
+        "merged_prs": 0.33,
         "reviews": 5.231,
         "threads": 3.505,
-        "dirs": 1.974,
-        "speed": 0.139
+        "dirs": 1.968,
+        "speed": 0.141
       },
       "persona": {
-        "tag": "The Builder",
-        "emoji": "\ud83c\udfd7\ufe0f",
-        "reason": "Strong all-round contributor"
+        "tag": "The Shield",
+        "emoji": "\ud83d\udee1\ufe0f",
+        "reason": "Provides the most thorough peer feedback."
       }
     },
     {
@@ -183,9 +183,9 @@
         "speed": 0.0
       },
       "persona": {
-        "tag": "The Builder",
-        "emoji": "\ud83c\udfd7\ufe0f",
-        "reason": "Strong all-round contributor"
+        "tag": "The Shield",
+        "emoji": "\ud83d\udee1\ufe0f",
+        "reason": "Provides the most thorough peer feedback."
       }
     }
   ]

@@ -10,24 +10,37 @@ HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Accept": "application/vnd.github+json"
 }
+import time
+
+TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 CUTOFF = datetime.now(timezone.utc) - timedelta(days=90)
+
+def fetch_with_retry(url, params):
+    for attempt in range(5):
+        try:
+            resp = requests.get(url, headers=HEADERS, params=params)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            if attempt == 4:
+                print(f"Failed after 5 attempts: {e}")
+                return []
+            time.sleep(2 ** attempt)
 
 def get_prs():
     prs = []
     page = 1
-    print("Fetching PRs...")
+    print("Fetching PRs for the full 90 day window...")
     while True:
         url = f"{BASE}/repos/{REPO}/pulls"
-        resp = requests.get(url, headers=HEADERS, params={
+        batch = fetch_with_retry(url, params={
             "state": "closed",
             "sort": "updated",
             "direction": "desc",
             "per_page": 100,
             "page": page
         })
-        resp.raise_for_status()
-        batch = resp.json()
         if not batch:
             break
         for pr in batch:
@@ -35,33 +48,24 @@ def get_prs():
                 continue
             merged_at = datetime.fromisoformat(pr["merged_at"].replace("Z", "+00:00"))
             if merged_at < CUTOFF:
-                print(f"  Reached cutoff at page {page}. Done.")
+                print(f"  Reached 90-day cutoff at page {page}. Done.")
                 return prs
             prs.append(pr)
-        print(f"  Page {page}: {len(batch)} PRs, total merged so far: {len(prs)}")
+        print(f"  Page {page}: fetched {len(batch)} PRs, total merged so far: {len(prs)}")
         page += 1
     return prs
 
 def get_reviews(pr_number):
     url = f"{BASE}/repos/{REPO}/pulls/{pr_number}/reviews"
-    resp = requests.get(url, headers=HEADERS, params={"per_page": 100})
-    if resp.status_code != 200:
-        return []
-    return resp.json()
+    return fetch_with_retry(url, params={"per_page": 100})
 
 def get_review_comments(pr_number):
     url = f"{BASE}/repos/{REPO}/pulls/{pr_number}/comments"
-    resp = requests.get(url, headers=HEADERS, params={"per_page": 100})
-    if resp.status_code != 200:
-        return []
-    return resp.json()
+    return fetch_with_retry(url, params={"per_page": 100})
 
 def get_files(pr_number):
     url = f"{BASE}/repos/{REPO}/pulls/{pr_number}/files"
-    resp = requests.get(url, headers=HEADERS, params={"per_page": 100})
-    if resp.status_code != 200:
-        return []
-    return resp.json()
+    return fetch_with_retry(url, params={"per_page": 100})
 
 BOT_KEYWORDS = ["[bot]", "bot", "copilot", "dependabot", "graphite", "greptile", "renovate", "codecov"]
 
@@ -162,8 +166,11 @@ def main():
             body = c.get("body", "") or ""
             if len(body) > 50:
                 authors[reviewer]["meaningful_reviews_given"] += 1
-            # Count unique threads per reviewer per PR
-            thread_key = (reviewer, c.get("pull_request_review_id"))
+            # Count unique threads per reviewer per PR safely
+            review_id = c.get("pull_request_review_id")
+            if review_id is None:
+                review_id = f"no_id_{c.get('id', 'unknown')}"
+            thread_key = (reviewer, review_id)
             if thread_key not in threads_started:
                 threads_started.add(thread_key)
                 authors[reviewer]["review_threads_started"] += 1
@@ -235,26 +242,26 @@ def main():
     )
     top5 = ranked[:5]
 
-    # Assign persona tags
+    # Assign persona tags based on highest normalized advantage
     def assign_persona(eng, all_eng):
-        # Find who has max in each category
-        max_merge_rate = max(all_eng, key=lambda x: x["merged_prs"])
-        max_review_ratio = max(all_eng, key=lambda x: (
-            x["meaningful_reviews_given"] / (x["merged_prs"] + 1)
-        ))
-        max_specialist = max(all_eng, key=lambda x: x["unique_dirs"])
-        max_speed = max(all_eng, key=lambda x: x["speed_bonus"])
-
-        if eng["login"] == max_review_ratio["login"]:
-            return {"tag": "The Shield", "emoji": "🛡️", "reason": "Highest review-to-author ratio"}
-        elif eng["login"] == max_merge_rate["login"]:
-            return {"tag": "The Closer", "emoji": "🚀", "reason": "Highest PR merge volume"}
-        elif eng["login"] == max_speed["login"]:
-            return {"tag": "The Accelerator", "emoji": "⚡", "reason": "Fastest average PR turnaround"}
-        elif eng["login"] == max_specialist["login"]:
-            return {"tag": "The Specialist", "emoji": "🔬", "reason": "Widest cross-area breadth"}
-        else:
-            return {"tag": "The Builder", "emoji": "🏗️", "reason": "Strong all-round contributor"}
+        diffs = {
+            "The Closer": eng["normalized"]["merged_prs"],
+            "The Shield": eng["normalized"]["reviews"],
+            "The Accelerator": eng["normalized"]["speed"],
+            "The Explorer": eng["normalized"]["dirs"]
+        }
+        top_trait = max(diffs, key=diffs.get)
+        
+        personas = {
+            "The Closer": {"tag": "The Closer", "emoji": "🚀", "reason": "Drives the highest volume of merged code."},
+            "The Shield": {"tag": "The Shield", "emoji": "🛡️", "reason": "Provides the most thorough peer feedback."},
+            "The Accelerator": {"tag": "The Accelerator", "emoji": "⚡", "reason": "Maintains the fastest PR turnaround time."},
+            "The Explorer": {"tag": "The Explorer", "emoji": "🗺️", "reason": "Contributes across the widest variety of modules."}
+        }
+        # Only assign if they are actually above average in that trait, else Builder
+        if diffs[top_trait] > 1.0:
+            return personas.get(top_trait)
+        return {"tag": "The Builder", "emoji": "🏗️", "reason": "Strong all-around contributor."}
 
     for eng in top5:
         eng["persona"] = assign_persona(eng, top5)
