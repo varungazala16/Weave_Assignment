@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PostHog Engineering Impact Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    header h1 span {
+      color: #f9a03f;
+    }
+
+    .meta {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-align: right;
+      line-height: 1.6;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 16px;
+    }
+
+    /* Engineer Cards */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .card:hover, .card.active {
+      border-color: #f9a03f;
+      background: #1e2538;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .rank {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f9a03f;
+      min-width: 24px;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #2d3748;
+    }
+
+    .card-name {
+      flex: 1;
+    }
+
+    .card-name strong {
+      font-size: 0.95rem;
+      color: #fff;
+      display: block;
+    }
+
+    .card-name a {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-decoration: none;
+    }
+
+    .card-name a:hover { color: #f9a03f; }
+
+    .persona-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #f9a03f22;
+      color: #f9a03f;
+      border: 1px solid #f9a03f44;
+      white-space: nowrap;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .stat {
+      background: #0f1117;
+      border-radius: 6px;
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.62rem;
+      color: #64748b;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .score-bar-wrap {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: #2d3748;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f9a03f, #e85d04);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .score-label {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    /* Right panel */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chart-card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .chart-header h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .toggle-btn {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+      border-color: #f9a03f;
+      color: #f9a03f;
+    }
+
+    .chart-canvas-wrap {
+      position: relative;
+      height: 180px;
+    }
+
+    .radar-card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 16px;
+      flex: 1;
+    }
+
+    .radar-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .radar-header h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .selected-name {
+      font-size: 0.8rem;
+      color: #f9a03f;
+      font-weight: 600;
+    }
+
+    .radar-canvas-wrap {
+      position: relative;
+      height: 180px;
+    }
+
+    /* Formula section */
+    .formula-section {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .formula-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .formula-toggle span {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .formula-toggle .arrow {
+      color: #64748b;
+      transition: transform 0.2s;
+      font-size: 0.8rem;
+    }
+
+    .formula-toggle.open .arrow {
+      transform: rotate(180deg);
+    }
+
+    .formula-body {
+      display: none;
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      line-height: 1.8;
+    }
+
+    .formula-body.open { display: block; }
+
+    .formula-body code {
+      background: #0f1117;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: block;
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 0.72rem;
+      color: #e2e8f0;
+      margin: 8px 0;
+    }
+
+    .weight-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    .weight-table td {
+      padding: 3px 6px;
+      font-size: 0.72rem;
+    }
+
+    .weight-table td:first-child { color: #e2e8f0; }
+    .weight-table td:last-child { color: #f9a03f; text-align: right; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>PostHog <span>Engineering Impact</span> Dashboard</h1>
+    <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">Top 5 most impactful engineers · Last 90 days</div>
+  </div>
+  <div class="meta" id="meta-info">Loading data...</div>
+</header>
+
+<div class="layout">
+  <!-- Left: Engineer Cards -->
+  <div class="cards" id="cards"></div>
+
+  <!-- Right: Charts -->
+  <div class="right-panel">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2 id="bar-title">Impact Score (Normalized)</h2>
+        <button class="toggle-btn" id="toggleBtn" onclick="toggleView()">Show Raw Counts</button>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <div class="radar-card">
+      <div class="radar-header">
+        <h2>Breakdown —</h2>
+        <span class="selected-name" id="radarName">click a card</span>
+      </div>
+      <div class="radar-canvas-wrap">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="formula-section">
+      <div class="formula-toggle" id="formulaToggle" onclick="toggleFormula()">
+        <span>🧮 How we calculate impact</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="formula-body" id="formulaBody">
+        <code>Impact = Σ ( metric_individual / metric_teamAvg × weight )</code>
+        <p>A score of 2.0 means 2× the team average. Accounts for how much <em>better than peers</em> each engineer is, not raw totals.</p>
+        <br>
+        <table class="weight-table">
+          <tr><td>Merged PRs</td><td>× 2.0</td></tr>
+          <tr><td>Meaningful Reviews (>50 chars)</td><td>× 1.5</td></tr>
+          <tr><td>Review Threads Started</td><td>× 1.0</td></tr>
+          <tr><td>Unique Directories Touched</td><td>× 1.5</td></tr>
+          <tr><td>PR Speed Bonus (1 / avg days)</td><td>× 1.0</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let DATA = null;
+  let showNormalized = true;
+  let barChart = null;
+  let radarChart = null;
+  let selectedIdx = 0;
+
+  fetch('data.json')
+    .then(r => r.json())
+    .then(data => {
+      DATA = data;
+      renderMeta(data);
+      renderCards(data.top5);
+      renderBarChart(data.top5);
+      selectEngineer(0);
+    })
+    .catch(err => {
+      document.getElementById('meta-info').textContent = 'Error loading data.json';
+      console.error(err);
+    });
+
+  function renderMeta(data) {
+    const d = new Date(data.generated_at);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    document.getElementById('meta-info').innerHTML =
+      `Data covers <strong>${data.days_covered} days</strong> · ${data.total_prs_analyzed} PRs analyzed<br>Generated ${dateStr}`;
+  }
+
+  function renderCards(engineers) {
+    const container = document.getElementById('cards');
+    const maxScore = engineers[0].impact_score;
+
+    engineers.forEach((eng, i) => {
+      const pct = Math.round((eng.impact_score / maxScore) * 100);
+      const card = document.createElement('div');
+      card.className = 'card' + (i === 0 ? ' active' : '');
+      card.id = `card-${i}`;
+      card.onclick = () => selectEngineer(i);
+
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="rank">#${i + 1}</div>
+          <img class="avatar" src="https://github.com/${eng.login}.png?size=68" alt="${eng.login}" onerror="this.src='https://github.com/identicons/${eng.login}.png'"/>
+          <div class="card-name">
+            <strong>${eng.login}</strong>
+            <a href="https://github.com/${eng.login}" target="_blank">@${eng.login}</a>
+          </div>
+          <div class="persona-badge">${eng.persona.emoji} ${eng.persona.tag}</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat">
+            <span class="stat-val">${eng.merged_prs}</span>
+            <span class="stat-label">PRs Merged</span>
+          </div>
+          <div class="stat">
+            <span class="stat-val">${eng.meaningful_reviews_given}</span>
+            <span class="stat-label">Reviews Given</span>
+          </div>
+          <div class="stat">
+            <span class="stat-val">${eng.unique_dirs}</span>
+            <span class="stat-label">Areas Touched</span>
+          </div>
+          <div class="stat">
+            <span class="stat-val">${eng.avg_days_open}d</span>
+            <span class="stat-label">Avg PR Time</span>
+          </div>
+        </div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="score-label">Score: ${eng.impact_score}</div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function renderBarChart(engineers) {
+    const ctx = document.getElementById('barChart').getContext('2d');
+    const labels = engineers.map(e => e.login);
+    const colors = ['#f9a03f', '#e85d04', '#9333ea', '#06b6d4', '#10b981'];
+
+    const normalizedData = engineers.map(e => e.impact_score);
+    const rawData = engineers.map(e => e.merged_prs + e.meaningful_reviews_given + e.review_threads_started);
+
+    if (barChart) barChart.destroy();
+
+    barChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Impact Score',
+          data: normalizedData,
+          backgroundColor: colors,
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const eng = DATA.top5[ctx.dataIndex];
+                if (showNormalized) {
+                  return ` Score: ${eng.impact_score} (${eng.persona.emoji} ${eng.persona.tag})`;
+                } else {
+                  return ` PRs: ${eng.merged_prs} | Reviews: ${eng.meaningful_reviews_given} | Threads: ${eng.review_threads_started}`;
+                }
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94a3b8', font: { size: 11 } },
+            grid: { color: '#1e2538' }
+          },
+          y: {
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { color: '#2d3748' }
+          }
+        }
+      }
+    });
+
+    barChart._normalizedData = normalizedData;
+    barChart._rawData = rawData;
+    barChart._colors = colors;
+  }
+
+  function toggleView() {
+    showNormalized = !showNormalized;
+    const btn = document.getElementById('toggleBtn');
+    const title = document.getElementById('bar-title');
+
+    if (showNormalized) {
+      barChart.data.datasets[0].data = barChart._normalizedData;
+      barChart.data.datasets[0].label = 'Impact Score';
+      title.textContent = 'Impact Score (Normalized)';
+      btn.textContent = 'Show Raw Counts';
+    } else {
+      barChart.data.datasets[0].data = barChart._rawData;
+      barChart.data.datasets[0].label = 'Raw Activity';
+      title.textContent = 'Raw Activity Count';
+      btn.textContent = 'Show Impact Score';
+    }
+    barChart.update();
+  }
+
+  function selectEngineer(idx) {
+    selectedIdx = idx;
+    document.querySelectorAll('.card').forEach((c, i) => {
+      c.classList.toggle('active', i === idx);
+    });
+
+    const eng = DATA.top5[idx];
+    document.getElementById('radarName').textContent = `${eng.persona.emoji} ${eng.login}`;
+    renderRadar(eng);
+  }
+
+  function renderRadar(eng) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    if (radarChart) radarChart.destroy();
+
+    const n = eng.normalized;
+    radarChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['PR Volume', 'Reviews (Quality)', 'Threads Started', 'Breadth', 'Speed'],
+        datasets: [{
+          label: eng.login,
+          data: [n.merged_prs, n.reviews, n.threads, n.dirs, n.speed],
+          backgroundColor: 'rgba(249,160,63,0.15)',
+          borderColor: '#f9a03f',
+          pointBackgroundColor: '#f9a03f',
+          pointRadius: 3,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const labels = ['PRs', 'Reviews', 'Threads', 'Breadth', 'Speed'];
+                return ` ${labels[ctx.dataIndex]}: ${ctx.raw.toFixed(2)}× avg`;
+              }
+            }
+          }
+        },
+        scales: {
+          r: {
+            min: 0,
+            ticks: { display: false },
+            grid: { color: '#2d3748' },
+            angleLines: { color: '#2d3748' },
+            pointLabels: {
+              color: '#94a3b8',
+              font: { size: 10 }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function toggleFormula() {
+    const toggle = document.getElementById('formulaToggle');
+    const body = document.getElementById('formulaBody');
+    toggle.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
